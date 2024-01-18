@@ -6,12 +6,13 @@ BUILD_DIR = "_site"
 CLOBBER.include BUILD_DIR
 
 Commit =
-  Struct.new(:hash, :author, :date, :title, :body) do
+  Struct.new(:hash, :author, :date, :title, :body, :index) do
     def self.all
       @all ||=
         `git log --pretty`.split(/^commit /)
           .drop(1)
-          .map do |string|
+          .each_with_index
+          .map do |string, index|
             lines = string.lines.map(&:strip)
             hash = lines[0]
             author = lines[1].sub(/Author:\s*/, "")
@@ -19,7 +20,7 @@ Commit =
             title = lines[4].strip
             body = lines.drop(6).map(&:strip).join("\n")
 
-            Commit.new(hash, author, date, title, body)
+            Commit.new(hash, author, date, title, body, index)
           end
     end
 
@@ -56,6 +57,18 @@ Commit =
           }
         }
       ).to_html
+    end
+
+    # Implied sort: the "previous commit" is the one authored immediately before this one
+    def prev_commit
+      incremented_index = index + 1
+      Commit.all[incremented_index]
+    end
+
+    # Implied sort: the "next commit" is the one authored immediately after this one
+    def next_commit
+      incremented_index = index - 1
+      Commit.all[incremented_index] unless incremented_index.negative?
     end
 
     def time
