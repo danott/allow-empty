@@ -16,11 +16,21 @@
       <dd><%= date %></dd>
 
       <dt>Reply:</dt>
-      <dd><a href="<%= github_url %>">on GitHub</a></dd>
+      <dd><a href="<%= github_url %>">GitHub</a></dd>
 
       <% if !rendering_collection %>
         <dt>Home:</dt>
         <dd><a href="/#commit_<%= hash %>">allow-empty</a></dd>
+
+        <% if next_commit %>
+          <dt>Next:</dt>
+          <dd><a href="<%= next_commit.relative_url %>"><%= next_commit.hash %></a></dd>
+        <% end %>
+
+        <% if prev_commit %>
+          <dt>Prev:</dt>
+          <dd><a href="<%= prev_commit.relative_url %>"><%= prev_commit.hash %></a></dd>
+        <% end %>
       <% end %>
     </dl>
     <h1><%= title %></h1>
