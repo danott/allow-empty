@@ -1,0 +1,221 @@
+/* @format*/
+
+/* CSS Rest from https://piccalil.li/blog/a-more-modern-css-reset/ */
+
+/* Box sizing rules */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Prevent font size inflation */
+html {
+  -moz-text-size-adjust: none;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+}
+
+/* Remove default margin in favour of better control in authored CSS */
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin-block-end: 0;
+}
+
+/* Remove list styles on ul, ol elements with a list role, which suggests default styling will be removed */
+ul[role="list"],
+ol[role="list"] {
+  list-style: none;
+}
+
+/* Set core body defaults */
+body {
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* Set shorter line heights on headings and interactive elements */
+h1,
+h2,
+h3,
+h4,
+button,
+input,
+label {
+  line-height: 1.1;
+}
+
+/* Balance text wrapping on headings */
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+/* A elements that don't have a class get default styles */
+a:not([class]) {
+  text-decoration-skip-ink: auto;
+  color: currentColor;
+}
+
+/* Make images easier to work with */
+img,
+picture {
+  max-width: 100%;
+  display: block;
+}
+
+/* Inherit fonts for inputs and buttons */
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+/* Make sure textareas without a rows attribute are not tiny */
+textarea:not([rows]) {
+  min-height: 10em;
+}
+
+/* Anything that has been anchored to should have extra scroll margin */
+:target {
+  scroll-margin-block: 3ex;
+}
+
+/* Begin my styles */
+
+:root {
+  /* Solararized colors */
+  --base03: #002b36;
+  --base02: #073642;
+  --base01: #586e75;
+  --base00: #657b83;
+  --base0: #839496;
+  --base1: #93a1a1;
+  --base2: #eee8d5;
+  --base3: #fdf6e3;
+
+  --yellow: #b58900;
+  --orange: #cb4b16;
+  --red: #dc322f;
+  --magenta: #d33682;
+  --violet: #6c71c4;
+  --blue: #268bd2;
+  --cyan: #2aa198;
+  --green: #859900;
+
+  --fg: var(--base00);
+  --bg: var(--base3);
+  --hl: var(--base2);
+  --emph: var(--base01);
+  --comment: var(--base1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: var(--base0);
+    --bg: var(--base03);
+    --hl: var(--base02);
+    --emph: var(--base1);
+    --comment: var(--base01);
+  }
+}
+
+:root {
+  --font-size: 100%;
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --font-size: 140%;
+  }
+}
+
+html {
+  color-scheme: light dark;
+  background-color: var(--bg);
+  color: var(--fg);
+  font-size: var(--font-size);
+  scroll-behavior: smooth;
+
+  font-family: "Source Code Pro", "Courier New", Courier, monospace;
+  font-weight: 400;
+
+  line-height: 1.5;
+  padding: 0.5rem;
+}
+
+body {
+  font-size: 1rem;
+  max-width: 50rem;
+  margin: 2rem auto;
+}
+
+body > header {
+  margin: 20vh 0 10vh 0;
+}
+
+body > header > h1 {
+  color: var(--yellow);
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2 {
+  font-size: 1rem;
+  font-weight: inherit;
+}
+
+h1 {
+  margin: 1.5rem 0;
+}
+
+article > header {
+  margin: 1.5rem 0;
+}
+
+article > header > h1,
+article > main {
+  margin-left: 3ch;
+}
+
+dt {
+  float: left;
+  clear: left;
+  min-width: 8ch;
+}
+
+dt:first-of-type {
+  min-width: 7ch;
+  color: var(--yellow);
+}
+dd:first-of-type {
+  color: var(--yellow);
+}
+
+dd {
+  display: block;
+}
+
+main blockquote {
+  margin-left: 2ch;
+}
+
+main blockquote::before {
+  content: ">\ ";
+  position: absolute;
+  margin-left: -2ch;
+}

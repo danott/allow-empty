@@ -7,6 +7,26 @@ CLOBBER.include BUILD_DIR
 
 Commit =
   Struct.new(:hash, :author, :date, :title, :body) do
+    def self.all
+      @all ||=
+        `git log --pretty`.split(/^commit /)
+          .drop(1)
+          .map do |string|
+            lines = string.lines.map(&:strip)
+            hash = lines[0]
+            author = lines[1].sub(/Author:\s*/, "")
+            date = lines[2].sub(/Date:\s*/, "")
+            title = lines[4].strip
+            body = lines.drop(6).map(&:strip).join("\n")
+
+            Commit.new(hash, author, date, title, body)
+          end
+    end
+
+    def self.for_feed
+      all.first(50)
+    end
+
     def task_name
       "#{BUILD_DIR}/#{hash}/index.html"
     end
@@ -15,76 +35,86 @@ Commit =
       "/#{hash}/"
     end
 
-    def markdown_for_html_member
-      "# #{title}\n\n#{body}"
+    def github_url
+      "https://github.com/danott/allow-empty/commit/#{hash}/#comments"
     end
 
-    def markdown_for_html_collection
-      "- [#{title}](#{relative_url})"
+    def render(rendering_collection:)
+      ERB.new(File.read("commit.erb")).result(self.binding)
     end
 
-    def markdown_for_feed_member
-      body
+    def render_body
+      Kramdown::Document.new(
+        body,
+        {
+          auto_ids: false,
+          hard_wrap: false,
+          input: "GFM",
+          syntax_highlighter: "rouge",
+          typographic_symbols: {
+            hellip: "..."
+          }
+        }
+      ).to_html
+    end
+
+    def time
+      Time.parse(date)
     end
   end
 
-def load_commits
-  `git log --pretty`.split(/^commit /)
-    .drop(1)
-    .map { |string| parse_commit(string) }
-end
+# Build the entire website
+task build: [
+       "#{BUILD_DIR}/index.html",
+       "#{BUILD_DIR}/feed.xml",
+       "#{BUILD_DIR}/style.css"
+     ]
 
-def parse_commit(string)
-  lines = string.lines.map(&:strip)
-  hash = lines[0]
-  author = lines[1].sub(/Author:\s*/, "")
-  date = Time.parse(lines[2].sub(/Date:\s*/, ""))
-  title = lines[4].strip
-  body = lines.drop(6).map(&:strip).join("\n")
-
-  Commit.new(hash, author, date, title, body)
-end
-
-def render_markdown(markdown, options = {})
-  Kramdown::Document.new(
-    markdown,
-    {
-      auto_ids: false,
-      hard_wrap: false,
-      input: "GFM",
-      syntax_highlighter: "rouge",
-      template: "document"
-    }.merge(options)
-  ).to_html
-end
-
-COMMITS = load_commits.freeze
-
-task build: ["#{BUILD_DIR}/index.html", "#{BUILD_DIR}/feed.xml"]
-
-FEED_COMMITS = COMMITS.first(50)
-task "#{BUILD_DIR}/feed.xml" => FEED_COMMITS.map(&:task_name) do |task|
+# Build feed.xml
+task "#{BUILD_DIR}/feed.xml" => Commit.for_feed.map(&:task_name) do |task|
   FileUtils.mkdir_p(BUILD_DIR)
-  File.write(task.name, Feed.new(FEED_COMMITS).render)
+  File.write(task.name, Feed.new(Commit.for_feed).render)
 end
 
-task "#{BUILD_DIR}/index.html" => COMMITS.map(&:task_name) do |task|
+# Build index.html
+task "#{BUILD_DIR}/index.html" => Commit.all.map(&:task_name) do |task|
+  title = "allow-empty"
+  html = Layout.new(title, Collection.new(Commit.all).render).render
+
   FileUtils.mkdir_p(BUILD_DIR)
-  File.write(task.name, render_markdown(INDEX_MARKDOWN))
+  File.write(task.name, html)
 end
 
+# Copy style.css
+task "#{BUILD_DIR}/style.css" => "style.css" do |task|
+  FileUtils.mkdir_p(BUILD_DIR)
+  FileUtils.cp("style.css", task.name)
+end
+
+# Rake rule to generate a page for each commit
 rule ".html" do |task|
-  commit = COMMITS.find { |candidate| candidate.task_name == task.name }
+  commit = Commit.all.find { |candidate| candidate.task_name == task.name }
+  title = commit.title
+  html = Layout.new(title, commit.render(rendering_collection: false)).render
+
   FileUtils.mkdir_p(File.dirname(task.name))
-  File.write(task.name, render_markdown(commit.markdown_for_html_member))
+  File.write(task.name, html)
 end
 
+# Run a web server to preview the site in development
 desc "Run a web server hosting #{BUILD_DIR}"
 task :serve do
   server = WEBrick::HTTPServer.new(Port: 3000, DocumentRoot: BUILD_DIR)
   trap("INT") { server.stop }
   server.start
 end
+
+Layout =
+  Struct.new(:title, :body) do
+    def render
+      ERB.new(File.read("layout.erb")).result(binding)
+    end
+  end
 
 Feed =
   Struct.new(:commits) do
@@ -99,7 +129,7 @@ Feed =
     def render
       RSS::Maker.make("2.0") do |maker|
         maker.channel.author = commits.first.author
-        maker.channel.updated = commits.map(&:date).max.to_s
+        maker.channel.updated = commits.map(&:time).max.to_s
         maker.channel.about = channel_link
         maker.channel.link = channel_link
         maker.channel.title = channel_title
@@ -107,29 +137,34 @@ Feed =
 
         commits.each do |commit|
           maker.items.new_item do |item|
-            item.description = render_markdown(commit.body, { template: nil })
+            item.description = commit.render_body + footer(commit)
             item.link = channel_link + commit.relative_url
             item.title = commit.title
-            item.updated = commit.date.to_s
+            item.updated = commit.time.to_s
           end
         end
       end
     end
+
+    def footer(commit)
+      address = %w[danott hey.com].join("@")
+      website_url = channel_link + commit.relative_url
+      website_url_without_protocol = website_url.delete_prefix("https://")
+
+      <<~HTML
+        <hr />
+        <p>
+          Thanks for reading via RSS! 
+          Wanna talk about it? 
+          You can <a href="#{commit.github_url}">comment on GitHub</a> or <a href="mailto:#{address}?subject=Re: #{website_url_without_protocol}">reply via email</a>.
+        </p>
+      HTML
+    end
   end
 
-INDEX_MARKDOWN = <<~HTML
-  # allow-empty
-
-  `allow-empty` is an experimental blog by [@danott](https://github.com/danott/).
-  Git commits to the [github.com/danott/allow-empty](https://github.com/danott/allow-empty) repository are the entries.
-  
-  ```bash
-  # Try it for yourself
-  git clone git@github.com:danott/allow-empty.git
-  cd allow-empty
-  git commit --allow-empty
-  rake clobber build serve
-  ````
-
-  #{COMMITS.map(&:markdown_for_html_collection).join("\n")}
-HTML
+Collection =
+  Struct.new(:commits) do
+    def render
+      ERB.new(File.read("collection.erb")).result(binding)
+    end
+  end
