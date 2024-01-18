@@ -211,11 +211,27 @@ dd {
 }
 
 main blockquote {
-  margin-left: 2ch;
+  margin-left: 0;
 }
 
 main blockquote::before {
   content: ">\ ";
+  position: absolute;
+  margin-left: -2ch;
+}
+
+main ul {
+  margin-left: 0;
+  padding-left: 0;
+}
+
+main ul li {
+  padding-left: 0;
+  list-style-type: none;
+}
+
+main ul li:before {
+  content: "-\ ";
   position: absolute;
   margin-left: -2ch;
 }
