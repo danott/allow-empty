@@ -1,0 +1,30 @@
+<article id="commit_<%= hash %>">
+  <header>
+    <dl>
+      <dt>commit</dt>
+
+      <% if rendering_collection %>
+        <dd><a href="<%= relative_url %>"><%= hash %></a></dd>
+      <% else %>
+        <dd><%= hash %></dd>
+      <% end %>
+
+      <dt>Author:</dt>
+      <dd><%= CGI.escapeHTML(author) %></dd>
+
+      <dt>Date:</dt>
+      <dd><%= date %></dd>
+
+      <dt>Reply:</dt>
+      <dd><a href="<%= github_url %>">on GitHub</a></dd>
+
+      <% if !rendering_collection %>
+        <dt>Home:</dt>
+        <dd><a href="/#commit_<%= hash %>">allow-empty</a></dd>
+      <% end %>
+    </dl>
+    <h1><%= title %></h1>
+  </header>
+
+  <main><%= render_body %></main>
+</article>
